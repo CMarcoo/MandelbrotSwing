@@ -2,6 +2,8 @@ package sample;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
@@ -9,19 +11,34 @@ import java.awt.image.BufferedImage;
 public class Main extends JComponent implements MouseWheelListener {
 
     private static int WIDTH = 1920 / 2, HEIGHT = 1080 / 2;
-    private static int ITERATIONS = 125;
+    private static int ITERATIONS = 75;
     private static int RESIZE = 222;
     private BufferedImage bufferedImage;
+    private JFrame jFrame;
 
     public Main() {
         bufferedImage = new BufferedImage(WIDTH, HEIGHT, 1);
         generateMandelbrotSet();
-        JFrame jFrame = new JFrame("Mandelbrot");
+        repaint();
+        jFrame = new JFrame("Mandelbrot");
         jFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         jFrame.setResizable(true);
         jFrame.getContentPane().add(this);
         jFrame.pack();
         jFrame.setVisible(true);
+        jFrame.addMouseWheelListener(this);
+
+        jFrame.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                Component c = e.getComponent();
+                WIDTH = c.getWidth();
+                HEIGHT = c.getHeight();
+                bufferedImage = new BufferedImage(WIDTH, HEIGHT, 1);
+                generateMandelbrotSet();
+                paint(c.getGraphics());
+            }
+        });
     }
 
     @Override
@@ -59,9 +76,7 @@ public class Main extends JComponent implements MouseWheelListener {
                 bufferedImage.setRGB(x, y, color);
             }
         }
-        repaint();
     }
-
 
 
     public static void main(String[] args) {
@@ -70,6 +85,14 @@ public class Main extends JComponent implements MouseWheelListener {
 
     @Override
     public void mouseWheelMoved(MouseWheelEvent e) {
-
+        int rotations = e.getWheelRotation() * -1;
+        if (rotations > 0) {
+            RESIZE += 25;
+        } else {
+            RESIZE -= 25;
+        }
+        generateMandelbrotSet();
+        paint(jFrame.getGraphics());
+        System.out.println(RESIZE);
     }
 }
