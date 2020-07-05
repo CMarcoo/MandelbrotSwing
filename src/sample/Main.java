@@ -11,7 +11,7 @@ import java.awt.image.BufferedImage;
 public class Main extends JComponent implements MouseWheelListener {
 
     private static int WIDTH = 1920 / 2, HEIGHT = 1080 / 2;
-    private static int ITERATIONS = 75;
+    private static int ITERATIONS = 20;
     private static int RESIZE = 222;
     private BufferedImage bufferedImage;
     private JFrame jFrame;
@@ -66,7 +66,7 @@ public class Main extends JComponent implements MouseWheelListener {
             iterations += 1;
         }
         if (iterations == ITERATIONS) return 0x00000000;
-        return Color.HSBtoRGB((((float) iterations / ITERATIONS) + 0.5f) % 1f, 0.55f, 0.95f);
+        return Color.HSBtoRGB((((float) iterations / ITERATIONS) - 0.425f) , 0.55f, 0.95f);
     }
 
     public void generateMandelbrotSet() {
