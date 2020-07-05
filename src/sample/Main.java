@@ -2,19 +2,20 @@ package sample;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
 
-public class Main extends JComponent {
+public class Main extends JComponent implements MouseWheelListener {
 
-    private static final int WIDTH = 1920 / 2, HEIGHT = 1080 / 2;
-    private static final int ITERATIONS = 155;
-    private static final int RESIZE = 300;
+    private static int WIDTH = 1920 / 2, HEIGHT = 1080 / 2;
+    private static int ITERATIONS = 125;
+    private static int RESIZE = 222;
     private BufferedImage bufferedImage;
 
     public Main() {
         bufferedImage = new BufferedImage(WIDTH, HEIGHT, 1);
         generateMandelbrotSet();
-        repaint();
         JFrame jFrame = new JFrame("Mandelbrot");
         jFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         jFrame.setResizable(true);
@@ -58,9 +59,17 @@ public class Main extends JComponent {
                 bufferedImage.setRGB(x, y, color);
             }
         }
+        repaint();
     }
+
+
 
     public static void main(String[] args) {
         Main main = new Main();
+    }
+
+    @Override
+    public void mouseWheelMoved(MouseWheelEvent e) {
+
     }
 }
