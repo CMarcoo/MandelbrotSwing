@@ -11,8 +11,9 @@ import java.awt.image.BufferedImage;
 public class Main extends JComponent implements MouseWheelListener {
 
     private static int WIDTH = 1920 / 2, HEIGHT = 1080 / 2;
-    private static int ITERATIONS = 20;
+    private static int ITERATIONS = 50;
     private static int RESIZE = 222;
+    private static final double LOG_2 = Math.log(2);
     private BufferedImage bufferedImage;
     private JFrame jFrame;
 
@@ -62,11 +63,14 @@ public class Main extends JComponent implements MouseWheelListener {
             double nY = 2d * x * y + colorY;
             x = nX;
             y = nY;
-            if (xSquared + ySquared > 4d) break;
             iterations += 1;
+            if (xSquared + ySquared > 4d) break;
         }
         if (iterations == ITERATIONS) return 0x00000000;
-        return Color.HSBtoRGB((((float) iterations / ITERATIONS) - 0.425f) , 0.55f, 0.95f);
+
+        float nsmooth = (float) (iterations + 1 - (Math.log(Math.log(Math.abs(Math.sqrt((x * x) + (y * y))))) / LOG_2));
+        return Color.HSBtoRGB(0.95f + 10 * nsmooth, 0.60f, 0.95f);
+        //return Color.HSBtoRGB((((float) iterations / ITERATIONS) - 0.645f) , 0.55f, 0.95f);
     }
 
     public void generateMandelbrotSet() {
@@ -87,12 +91,14 @@ public class Main extends JComponent implements MouseWheelListener {
     public void mouseWheelMoved(MouseWheelEvent e) {
         int rotations = e.getWheelRotation() * -1;
         if (rotations > 0) {
-            RESIZE += 25;
+            RESIZE += 10;
+        } else if (RESIZE > 5) {
+            RESIZE -= 10;
         } else {
-            RESIZE -= 25;
+            JOptionPane.showMessageDialog(jFrame, "You cannot zoom-out any further.");
         }
         generateMandelbrotSet();
         paint(jFrame.getGraphics());
-        System.out.println(RESIZE);
+        // System.out.println(RESIZE);
     }
 }
