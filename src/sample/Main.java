@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Main extends JComponent implements MouseWheelListener, KeyListener {
 
     private static int WIDTH = 1920 / 2, HEIGHT = 1080 / 2;
-    private static int ITERATIONS = 125;
+    private static int ITERATIONS = 250;
     private static int RESIZE = 225;
     private static final int THREAD_COUNT = Runtime.getRuntime().availableProcessors() * 2;
     private static final int THREAD_DIMENSION_INCREASE = (WIDTH / THREAD_COUNT);
@@ -73,7 +73,7 @@ public class Main extends JComponent implements MouseWheelListener, KeyListener 
         }
         if (iterations == ITERATIONS) return Color.BLACK.getRGB();
 
-        return Color.HSBtoRGB((((float) iterations / ITERATIONS) - 0.645f), 0.55f, 0.95f);
+        return Color.HSBtoRGB((((float) iterations / ITERATIONS) - 0.045f), 0.55f, 0.95f);
     }
 
     public static final class ThreadRenderer extends Thread {
@@ -106,7 +106,7 @@ public class Main extends JComponent implements MouseWheelListener, KeyListener 
             threadStatuses.put(NUMBER, false);
             for (int x = startX; x < endX; x++) {
                 for (int y = 0; y < HEIGHT; y++) {
-                    int color = generateColor((x - (double) WIDTH / MOVE_X) / RESIZE, (y - (double) HEIGHT / MOVE_Y) / RESIZE);
+                    int color = generateColor(((x - (double) WIDTH / 2d) / RESIZE ) + MOVE_X, ((y - (double) HEIGHT / 2d) / RESIZE) + MOVE_Y);
                     image.setRGB(x, y, color);
                 }
             }
@@ -141,9 +141,9 @@ public class Main extends JComponent implements MouseWheelListener, KeyListener 
     public void mouseWheelMoved(MouseWheelEvent e) {
         int rotations = e.getWheelRotation() * -1;
         if (rotations > 0) {
-            RESIZE += 50;
+            RESIZE += 100;
         } else if (RESIZE > 5) {
-            RESIZE -= 50;
+            RESIZE -= 100;
         } else {
             JOptionPane.showMessageDialog(jFrame, "You cannot zoom-out any further.");
         }
