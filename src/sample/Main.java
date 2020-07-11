@@ -2,25 +2,25 @@ package sample;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.MouseWheelEvent;
-import java.awt.event.MouseWheelListener;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class Main extends JComponent implements MouseWheelListener {
+public class Main extends JComponent implements MouseWheelListener, KeyListener {
 
     private static int WIDTH = 1920 / 2, HEIGHT = 1080 / 2;
-    private static int ITERATIONS = 50;
-    private static int RESIZE = 222;
-    private static final double LOG_2 = Math.log(2);
+    private static int ITERATIONS = 250;
+    private static int RESIZE = 225;
+    private static final int THREAD_COUNT = Runtime.getRuntime().availableProcessors() * 2;
+    private static final int THREAD_DIMENSION_INCREASE = (WIDTH / THREAD_COUNT);
+    private static double MOVE_X = 2d;
+    private static double MOVE_Y = 2d;
     private BufferedImage bufferedImage;
     private JFrame jFrame;
 
     public Main() {
-        bufferedImage = new BufferedImage(WIDTH, HEIGHT, 1);
-        generateMandelbrotSet();
-        repaint();
         jFrame = new JFrame("Mandelbrot");
         jFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         jFrame.setResizable(true);
@@ -28,6 +28,11 @@ public class Main extends JComponent implements MouseWheelListener {
         jFrame.pack();
         jFrame.setVisible(true);
         jFrame.addMouseWheelListener(this);
+        //jFrame.addMouseMotionListener(this);
+        jFrame.addKeyListener(this);
+
+        generateMandelbrotSet();
+        repaint();
 
         jFrame.addComponentListener(new ComponentAdapter() {
             @Override
@@ -52,7 +57,7 @@ public class Main extends JComponent implements MouseWheelListener {
         graphics.drawImage(bufferedImage, 0, 0, null);
     }
 
-    public int generateColor(double x, double y) {
+    public static int generateColor(double x, double y) {
         double colorX = x;
         double colorY = y;
         int iterations = 0;
@@ -63,25 +68,70 @@ public class Main extends JComponent implements MouseWheelListener {
             double nY = 2d * x * y + colorY;
             x = nX;
             y = nY;
-            iterations += 1;
             if (xSquared + ySquared > 4d) break;
+            iterations += 1;
         }
-        if (iterations == ITERATIONS) return 0x00000000;
+        if (iterations == ITERATIONS) return Color.BLACK.getRGB();
 
-        float nsmooth = (float) (iterations + 1 - (Math.log(Math.log(Math.abs(Math.sqrt((x * x) + (y * y))))) / LOG_2));
-        return Color.HSBtoRGB(0.95f + 10 * nsmooth, 0.60f, 0.95f);
-        //return Color.HSBtoRGB((((float) iterations / ITERATIONS) - 0.645f) , 0.55f, 0.95f);
+        return Color.HSBtoRGB((((float) iterations / ITERATIONS) - 0.645f), 0.55f, 0.95f);
     }
 
-    public void generateMandelbrotSet() {
-        for (int x = 0; x < WIDTH; x++) {
-            for (int y = 0; y < HEIGHT; y++) {
-                int color = generateColor((x - (double) WIDTH / 2d) / RESIZE, (y - (double) HEIGHT / 2d) / RESIZE);
-                bufferedImage.setRGB(x, y, color);
+    public static final class ThreadRenderer extends Thread {
+        private final Map<Integer, Boolean> threadStatuses;
+        private final int startX, endX;
+        private final BufferedImage image;
+        private final int NUMBER;
+        private final JFrame jFrame;
+
+        public ThreadRenderer(int startX,
+                              int endX,
+                              BufferedImage image,
+                              int NUMBER,
+                              JFrame jFrame,
+                              Map<Integer, Boolean> statusesMap) {
+            this.startX = startX;
+            this.endX = endX;
+            this.image = image;
+            this.NUMBER = NUMBER;
+            this.jFrame = jFrame;
+            this.threadStatuses = statusesMap;
+        }
+
+        public int getNUMBER() {
+            return NUMBER;
+        }
+
+        @Override
+        public void run() {
+            threadStatuses.put(NUMBER, false);
+            for (int x = startX; x < endX; x++) {
+                for (int y = 0; y < HEIGHT; y++) {
+                    int color = generateColor((x - (double) WIDTH / MOVE_X) / RESIZE, (y - (double) HEIGHT / MOVE_Y) / RESIZE);
+                    image.setRGB(x, y, color);
+                }
+            }
+            threadStatuses.put(NUMBER, true);
+            if (threadStatuses.values().stream().allMatch(v -> v) && threadStatuses.values().size() == THREAD_COUNT) {
+                jFrame.getGraphics().drawImage(image, 0, 0, null);
+                threadStatuses.clear();
             }
         }
     }
 
+    private final Map<Integer, Boolean> threadStatuses = new ConcurrentHashMap<>();
+
+    public void generateMandelbrotSet() {
+        BufferedImage bufferedImage = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+        int threadStarted = 1;
+        int space = 0;
+        int increaseFactor = WIDTH / THREAD_COUNT;
+        do {
+            ThreadRenderer rendered = new ThreadRenderer(space, (space + increaseFactor), bufferedImage, threadStarted, jFrame, threadStatuses);
+            rendered.start();
+            space += increaseFactor;
+            threadStarted++;
+        } while (threadStarted - 1 != THREAD_COUNT);
+    }
 
     public static void main(String[] args) {
         Main main = new Main();
@@ -91,14 +141,90 @@ public class Main extends JComponent implements MouseWheelListener {
     public void mouseWheelMoved(MouseWheelEvent e) {
         int rotations = e.getWheelRotation() * -1;
         if (rotations > 0) {
-            RESIZE += 10;
+            RESIZE += 50;
         } else if (RESIZE > 5) {
-            RESIZE -= 10;
+            RESIZE -= 50;
         } else {
             JOptionPane.showMessageDialog(jFrame, "You cannot zoom-out any further.");
         }
         generateMandelbrotSet();
         paint(jFrame.getGraphics());
-        // System.out.println(RESIZE);
+    }
+
+    private enum Move {
+        X_AXIS, Y_AXIS
+    }
+
+    private final EnumMap<Move, Integer> moveMap = new EnumMap<>(Move.class);
+
+    /*@Override
+    public void mouseDragged(MouseEvent e) {
+        int movedX = e.getX();
+        int movedY = e.getY();
+        if (!moveMap.isEmpty()) {
+            Integer previousX = moveMap.get(Move.X_AXIS);
+            Integer previousY = moveMap.get(Move.Y_AXIS);
+            boolean renderAgain = false;
+            if (Math.abs(previousX - movedX) > 5) {
+                if (movedX > previousX) {
+                    MOVE_X -= 0.75d;
+
+                } else if (movedX < previousX) {
+                    MOVE_X += 0.75d;
+
+                }
+                renderAgain = true;
+            }
+
+            if (Math.abs(previousY - movedY) > 5) {
+                if (movedY > previousY) {
+                    MOVE_Y -= 0.75d;
+                } else if (movedY < previousY) {
+                    MOVE_Y += 0.75d;
+                }
+                renderAgain = true;
+            }
+
+            if (renderAgain) {
+                generateMandelbrotSet();
+                paint(jFrame.getGraphics());
+            }
+        }
+        moveMap.put(Move.X_AXIS, movedX);
+        moveMap.put(Move.Y_AXIS, movedY);
+    }*/
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_UP:
+                MOVE_Y += 0.50;
+                generateMandelbrotSet();
+                break;
+            case KeyEvent.VK_DOWN:
+                MOVE_Y -= 0.50;
+                generateMandelbrotSet();
+                break;
+            case KeyEvent.VK_RIGHT:
+                MOVE_X += 0.50;
+                generateMandelbrotSet();
+                break;
+            case KeyEvent.VK_LEFT:
+                MOVE_X -= 0.50;
+                generateMandelbrotSet();
+                break;
+            default:
+                break;
+        }
     }
 }
