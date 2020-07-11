@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Main extends JComponent implements MouseWheelListener, KeyListener {
 
     private static int WIDTH = 1920 / 2, HEIGHT = 1080 / 2;
-    private static int ITERATIONS = 250;
+    private static int ITERATIONS = 125;
     private static int RESIZE = 225;
     private static final int THREAD_COUNT = Runtime.getRuntime().availableProcessors() * 2;
     private static final int THREAD_DIMENSION_INCREASE = (WIDTH / THREAD_COUNT);
@@ -111,7 +111,7 @@ public class Main extends JComponent implements MouseWheelListener, KeyListener 
                 }
             }
             threadStatuses.put(NUMBER, true);
-            if (threadStatuses.values().stream().allMatch(v -> v) && threadStatuses.values().size() == THREAD_COUNT) {
+            if (threadStatuses.values().stream().allMatch(Boolean::booleanValue) && threadStatuses.values().size() == THREAD_COUNT) {
                 jFrame.getGraphics().drawImage(image, 0, 0, null);
                 threadStatuses.clear();
             }
@@ -156,43 +156,6 @@ public class Main extends JComponent implements MouseWheelListener, KeyListener 
     }
 
     private final EnumMap<Move, Integer> moveMap = new EnumMap<>(Move.class);
-
-    /*@Override
-    public void mouseDragged(MouseEvent e) {
-        int movedX = e.getX();
-        int movedY = e.getY();
-        if (!moveMap.isEmpty()) {
-            Integer previousX = moveMap.get(Move.X_AXIS);
-            Integer previousY = moveMap.get(Move.Y_AXIS);
-            boolean renderAgain = false;
-            if (Math.abs(previousX - movedX) > 5) {
-                if (movedX > previousX) {
-                    MOVE_X -= 0.75d;
-
-                } else if (movedX < previousX) {
-                    MOVE_X += 0.75d;
-
-                }
-                renderAgain = true;
-            }
-
-            if (Math.abs(previousY - movedY) > 5) {
-                if (movedY > previousY) {
-                    MOVE_Y -= 0.75d;
-                } else if (movedY < previousY) {
-                    MOVE_Y += 0.75d;
-                }
-                renderAgain = true;
-            }
-
-            if (renderAgain) {
-                generateMandelbrotSet();
-                paint(jFrame.getGraphics());
-            }
-        }
-        moveMap.put(Move.X_AXIS, movedX);
-        moveMap.put(Move.Y_AXIS, movedY);
-    }*/
 
     @Override
     public void keyTyped(KeyEvent e) {
